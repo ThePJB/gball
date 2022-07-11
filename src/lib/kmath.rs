@@ -340,7 +340,9 @@ impl Rect {
     pub fn new(x: f32, y: f32, w: f32, h: f32) -> Rect {
         Rect{x,y,w,h}
     }
-
+    pub fn centered(p: Vec2, w: f32, h: f32) -> Rect {
+        Rect::new(p.x - w/2.0, p.y - h/2.0, w, h)
+    }
     pub fn child(&self, x: f32, y: f32, w: f32, h: f32) -> Rect {
         Rect::new(
             self.x + x*self.w,
@@ -378,6 +380,19 @@ impl Rect {
             let other_x = self.x + (self.w - other_w) / 2.0;
             Rect::new(other_x, self.y, other_w, self.h)
         }
+    }
+    pub fn fill_aspect_ratio(&self, a: f32) -> Rect {
+        let our_a = self.w / self.h;
+        if our_a < a {
+            //wider
+            Rect::centered(self.centroid(), self.w * (a / our_a), self.h)
+        } else {
+            //taller
+            Rect::centered(self.centroid(), self.w, self.h * (our_a / a))
+        }
+    } 
+    pub fn aspect(&self) -> f32 {
+        self.w / self.h
     }
     pub fn centroid(&self) -> Vec2 {
         Vec2::new(self.x + self.w/2.0, self.y + self.h/2.0)

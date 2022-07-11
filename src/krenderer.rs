@@ -97,6 +97,9 @@ impl KRCanvas {
     pub fn set_depth(&mut self, d: f32) {
         self.depth = d;
     }
+    pub fn set_camera(&mut self, cam: Rect) {
+        self.from_rect = cam;
+    }
 
     pub fn triangle(&mut self, a: Vec2, b: Vec2, c: Vec2) {
         self.uv_from = Triangle{a,b,c}.aabb();

@@ -57,30 +57,43 @@ impl Game {
     }
 
     pub fn frame(&mut self, inputs: &FrameInputState, kc: &mut KRCanvas) {
-        let player_speed = 0.59;
-        let enemy_speed = 0.45;
-        let enemy_steer_amount = 9.0;
+        let player_speed = 0.55;    // 0.59
+        // let player_speed = 0.59;    // 0.59
+        let enemy_speed = 0.3;     // 
+        // let enemy_speed = 0.45;     // 
+        let enemy_steer_amount = 5.0;
+        // let enemy_steer_amount = 9.0;
 
+        let player_regen = 0.05;
         let spawn_interval = 0.1;
-        let spawn_chance = 0.02 + 0.01 * self.difficulty_level as f32;
+        let spawn_chance = 0.02 + 0.005 * self.difficulty_level as f32;
         let player_radius = 0.05;
         let enemy_radius = 0.025;
         let fireball_radius = 0.025;
-        let fireball_explode_radius = 0.35;
-        let fireball_self_damage = 0.4;
+        let fireball_explode_radius = 0.2 + 0.07 * self.difficulty_level as f32;
+        // let fireball_explode_radius = 0.3;
+        let fireball_self_damage = 0.5;
+        let fireball_speed = 2.5;
         let enemy_damage = 0.2;
         let game_rect = Rect::new(-1.0, -1.0, 2.0, 2.0);
         
         let walls = vec![
-            Rect::new(-1.0, -1.0, 0.9, 0.1),
-            Rect::new(0.1, -1.0, 0.9, 0.1),
-            Rect::new(-1.0, 0.9, 0.9, 0.1),
-            Rect::new(0.1, 0.9, 0.9, 0.1),
+            Rect::new(-2.0, -1.0, 1.9, 0.1),
+            Rect::new(0.1, -1.0, 1.9, 0.1),
+            Rect::new(-2.0, 0.9, 1.9, 0.1),
+            Rect::new(0.1, 0.9, 1.9, 0.1),
             
-            Rect::new(-1.0, -1.0, 0.1, 0.9),
-            Rect::new(0.9, -1.0, 0.1, 0.9),
-            Rect::new(-1.0, 0.1, 0.1, 0.9),
-            Rect::new(0.9, 0.1, 0.1, 0.9),
+            Rect::new(-1.0, -2.0, 0.1, 1.9),
+            Rect::new(0.9, -2.0, 0.1, 1.9),
+            Rect::new(-1.0, 0.1, 0.1, 1.9),
+            Rect::new(0.9, 0.1, 0.1, 1.9),
+
+            // Rect::new(0.2, 0.4, 0.1, 0.1),
+
+            Rect::new_centered(-0.3, -0.5, 0.2, 0.4),
+            Rect::new_centered(-0.3, 0.5, 0.2, 0.4),
+            Rect::new_centered(0.3, -0.5, 0.2, 0.4),
+            Rect::new_centered(0.3, 0.5, 0.2, 0.4),
         ];
 
         let fgs = vec![
@@ -153,7 +166,7 @@ impl Game {
             let mouse_world = inputs.mouse_pos.transform(inputs.screen_rect, game_rect);
             self.is_fireball = true;
             self.fireball_pos = self.player_pos;
-            self.fireball_vel = (mouse_world - self.player_pos).normalize() * 2.0;
+            self.fireball_vel = (mouse_world - self.player_pos).normalize() * fireball_speed;
         }
         let player_steer = {
             let mut steer = Vec2::new(0.0, 0.0);
@@ -179,7 +192,7 @@ impl Game {
         self.player_pos = self.player_pos + frame_v * inputs.dt as f32;
 
         if self.is_player {
-            self.player_health = (self.player_health + 0.1 * inputs.dt as f32).min(1.0);
+            self.player_health = (self.player_health + player_regen * inputs.dt as f32).min(1.0);
         }
 
         if self.is_fireball {
@@ -310,8 +323,18 @@ impl Game {
 
         } // depause
 
-        kc.set_colour(bg);
+        // this might be when my shitty renderer comes back to bite me
+        // 
+
+        kc.set_colour(fg);
+        kc.set_camera(inputs.screen_rect);
         kc.set_depth(1.0);
+        kc.rect(inputs.screen_rect);
+        
+        // well i guess if i want the game to be smaller i make the camera bigger lol. but the aspect ratio change? i guess inverse, its like a rect division or something
+        kc.set_camera(game_rect.fill_aspect_ratio(inputs.screen_rect.aspect()).dilate_pc(0.05));
+        kc.set_colour(bg);
+        kc.set_depth(1.1);
         kc.rect(game_rect);
 
         kc.set_colour(fg);

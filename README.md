@@ -12,6 +12,12 @@ todo:
   subtle death animation
 
 
+  something could happen to you each death as well, be a part of a self balancing process
+  eg only 3 deaths but you get stronger each time, kind of a punishment and a reward at the same time
+    but yeah i need to try that too
+    multipart story, could feel quite different each time
+
+
 How is audio engine gonna work
 * chunk is a pcm buf of floats
 * chunks synthed however
@@ -19,7 +25,7 @@ How is audio engine gonna work
 * mixer gets told "play this immediately" and also aware of music: hopefully treated the same
   * but maybe not the same, want to play whole sound asap, would some ever get chopped off? probably not tbh
   * so some number of chunks are playing with some amount of gain, even compression or something or post processing could occur
-  * lol when you're hurt music goes into dub mode
+  * lol when you're ddmusic goes into dub mode
   * cpal calls the callback to get the data, how much do I provide at a time?
   * what format are my playing chunks in? ideally we can talk in samples
 
@@ -29,3 +35,11 @@ How is audio engine gonna work
     * do we ever get interrupted by the audio thread?
 
   * i guess we store a list of (&buf, start_sample, gain) and when we want the next 1000 samples we compute maybe window sizes of where we do the same shit, mix them in
+
+
+bugs:
+aspect ratio mouse inputs
+dudes leaving the playspace
+player can get stuck outside walls too
+
+todo mode switch
