@@ -123,6 +123,8 @@ impl Game {
 
         let fg = foreground_min.lerp(foreground_max, lerp_t);
         let bg = background_min.lerp(background_max, lerp_t);
+
+        let game_to_rect = game_rect.fill_aspect_ratio(inputs.screen_rect.aspect()).dilate_pc(0.05);
      
         if !self.paused {
         self.t += inputs.dt;
@@ -163,7 +165,7 @@ impl Game {
 
         if self.is_player && self.is_fireball == false && self.t > self.explosion_end && inputs.lmb == KeyStatus::JustPressed {
             // spawn fireball
-            let mouse_world = inputs.mouse_pos.transform(inputs.screen_rect, game_rect);
+            let mouse_world = inputs.mouse_pos.transform(inputs.screen_rect, game_to_rect);
             self.is_fireball = true;
             self.fireball_pos = self.player_pos;
             self.fireball_vel = (mouse_world - self.player_pos).normalize() * fireball_speed;
@@ -332,7 +334,7 @@ impl Game {
         kc.rect(inputs.screen_rect);
         
         // well i guess if i want the game to be smaller i make the camera bigger lol. but the aspect ratio change? i guess inverse, its like a rect division or something
-        kc.set_camera(game_rect.fill_aspect_ratio(inputs.screen_rect.aspect()).dilate_pc(0.05));
+        kc.set_camera(game_to_rect);
         kc.set_colour(bg);
         kc.set_depth(1.1);
         kc.rect(game_rect);

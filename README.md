@@ -1,4 +1,8 @@
 # Round Survival
+## Controls
+WASD, mouse to shoot
+
+
 
 todo:
   sound... will be interesting, software synthesis, audio callback or whatever

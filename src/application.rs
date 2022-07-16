@@ -90,7 +90,10 @@ impl Application {
 
         if let Some(inputs) = self.event_aggregator.handle_event(event) {
             
-            unsafe { self.gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT); } 
+            unsafe {
+                self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
+                self.gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT); 
+            } 
 
             let mut kc = KRCanvas::new();
 
