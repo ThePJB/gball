@@ -146,13 +146,13 @@ fn  make_shader(gl: &glow::Context, vert_paths: &[&str], frag_paths: &[&str]) ->
 
 unsafe fn opengl_boilerplate(xres: f32, yres: f32, event_loop: &glutin::event_loop::EventLoop<()>) -> (glow::Context, glutin::WindowedContext<glutin::PossiblyCurrent>) {
     let window_builder = glutin::window::WindowBuilder::new()
-        .with_title("round survival")
+        .with_title("gball")
         .with_inner_size(glutin::dpi::PhysicalSize::new(xres, yres));
     let window = glutin::ContextBuilder::new()
         // .with_depth_buffer(0)
         // .with_srgb(true)
         // .with_stencil_buffer(0)
-        .with_vsync(true)
+        // .with_vsync(true)
         .build_windowed(window_builder, &event_loop)
         .unwrap()
         .make_current()

@@ -3,6 +3,11 @@ use crate::lib::kimg::*;
 
 use glow::*;
 
+
+pub const text_clip: Rect = Rect {x: 0.0, y: 6.0/10.0, w: 14.0/20.0, h: 1.5/10.0};
+pub const text_aspect: f32 = 7./8.;
+
+
 // Stateful rendering
 // even give it turtle graphics capabilities lol. I want to use more silly rotatey triangles and stuff
 // can do even transformations and stuff
@@ -156,6 +161,23 @@ impl KRCanvas {
 
     pub fn circle(&mut self, center: Vec2, radius: f32) {
         self.poly(center, radius, 40);
+    }
+
+    pub fn text_left(&mut self, s: &[u8], r: Rect) {
+        let mut char_rect = Rect::new(r.x, r.y, r.h * text_aspect, r.h);
+        for c in s {
+            let idx = c - b' ';
+            let x = idx % 32;
+            let y = idx / 32;
+            let char_clip = text_clip.grid_child(x as i32, y as i32, 32, 3);
+            self.uv_clip = char_clip;
+            self.rect(char_rect);
+            char_rect.x += char_rect.w;
+        }
+    }
+    pub fn text_center(&mut self, s: &[u8], r: Rect) {
+        let r = r.fit_aspect_ratio(s.len() as f32 * text_aspect);
+        self.text_left(s, r);
     }
 
     pub fn bytes(self) -> Vec<u8> {
