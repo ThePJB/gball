@@ -160,7 +160,9 @@ impl KRCanvas {
     }
 
     pub fn circle(&mut self, center: Vec2, radius: f32) {
-        self.poly(center, radius, 40);
+        let n_sides = (radius as f32).sqrt() * 200.0;
+        // let n_sides = 6;
+        self.poly(center, radius, (n_sides as i32).max(6));
     }
 
     pub fn text_left(&mut self, s: &[u8], r: Rect) {
@@ -182,5 +184,18 @@ impl KRCanvas {
 
     pub fn bytes(self) -> Vec<u8> {
         self.buf
+    }
+
+    pub fn cloud(&mut self, r: Rect, seed: u32) {
+        self.rect(r);
+        let r1 = kuniform(seed, r.h, r.h*1.5);
+        let r2 = kuniform(seed * 129836125, r.h, r.h*2.0);
+        let r3 = kuniform(seed * 129316739, r.h, r.h*1.5);
+        let c1 = Vec2::new(r.left(), r.bot() - r1);
+        let c2 = Vec2::new(r.centroid().x, r.bot() - r2);
+        let c3 = Vec2::new(r.right(), r.bot() - r3);
+        self.circle(c1, r1);
+        self.circle(c2, r2);
+        self.circle(c3, r3);
     }
 }

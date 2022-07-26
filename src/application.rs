@@ -60,7 +60,7 @@ impl Application {
             renderer,
             event_aggregator: EventAggregator::new(default_xres, default_yres),
 
-            game: Game::new(),
+            game: Game::new(0),
 
             xres: default_xres,
             yres: default_yres,

@@ -93,7 +93,9 @@ impl EventAggregator {
                     ..},
                 ..} => {
                     if *state == ElementState::Pressed {
-                        self.current.keys.insert(*virtual_code, KeyStatus::JustPressed);
+                        if !self.current.keys.contains_key(virtual_code) { // should filter out repeats
+                            self.current.keys.insert(*virtual_code, KeyStatus::JustPressed);
+                        }
                     } else {
                         self.current.keys.insert(*virtual_code, KeyStatus::JustReleased);
                     }
