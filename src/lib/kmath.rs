@@ -328,7 +328,7 @@ impl std::fmt::Display for Vec4 {
  * Shapes
  ***************************************************/
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rect {
     pub x: f32,
     pub y: f32,
@@ -391,6 +391,14 @@ impl Rect {
             Rect::centered(self.centroid(), self.w, self.h * (our_a / a))
         }
     } 
+    pub fn lerp(&self, other: Rect, t: f32) -> Rect {
+        Rect::new(
+            lerp(self.x, other.x, t),
+            lerp(self.y, other.y, t),
+            lerp(self.w, other.w, t),
+            lerp(self.h, other.h, t),
+        )
+    }
     pub fn aspect(&self) -> f32 {
         self.w / self.h
     }
@@ -545,4 +553,22 @@ impl Triangle {
         Rect { x: min_x, y: min_y, w: max_x - min_x, h: max_y - min_y }
 
     }
+}
+
+#[test]
+pub fn test_lerp() {
+    let r1 = Rect::new(0.0, 0.0, 1.0, 1.0);
+    let r2 = Rect::new(1.0, 0.0, 1.0, 1.0);
+    assert_eq!(r1.lerp(r2, 0.5), Rect::new(0.5, 0.0, 1.0, 1.0));
+    assert_eq!(r1.lerp(r2, 0.3), Rect::new(0.3, 0.0, 1.0, 1.0));
+
+    let r1 = Rect::new(0.0, 0.0, 1.0, 1.0);
+    let r2 = Rect::new(1.0, 1.0, 1.0, 1.0);
+    assert_eq!(r1.lerp(r2, 0.5), Rect::new(0.5, 0.5, 1.0, 1.0));
+    assert_eq!(r1.lerp(r2, 0.3), Rect::new(0.3, 0.3, 1.0, 1.0));
+
+    let r1 = Rect::new(0.0, 0.0, 1.0, 1.0);
+    let r2 = Rect::new(1.0, 1.0, 2.0, 1.0);
+    assert_eq!(r1.lerp(r2, 0.5), Rect::new(0.5, 0.5, 1.5, 1.0));
+    assert_eq!(r1.lerp(r2, 0.3), Rect::new(0.3, 0.3, 1.3, 1.0));
 }

@@ -30,7 +30,7 @@ pub fn load_file(paths: &[&str]) -> String {
 impl Application {
     pub fn new(event_loop: &glutin::event_loop::EventLoop<()>) -> Application {
         let default_xres = 1600.0;
-        let default_yres = 1600.0;
+        let default_yres = 900.0;
 
         let (gl, window) = unsafe { opengl_boilerplate(default_xres, default_yres, event_loop) };
         

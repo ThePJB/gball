@@ -78,6 +78,10 @@ pub struct Game {
 
     cloud_spawn_timer: RepeatTimer,
 
+    score_lerp_timer: f32,
+
+    tutorial_phase: i32,
+
     pub paused: bool,
     dead: bool,
 }
@@ -107,6 +111,10 @@ impl Game {
 
             cloud_spawn_timer: RepeatTimer::new(1.0),
 
+            score_lerp_timer: 0.0,
+
+            tutorial_phase: 0,
+
             dead: false,
         }
     }
@@ -123,34 +131,44 @@ impl Game {
         let gap_h = 0.4;
         let wall_w = 0.2;
 
+        let score_time = 2.0;
+
+        let game_dt = if self.paused || self.dead {
+            0.0
+        } else if self.tutorial_phase < 2 {
+            inputs.dt / 4.0
+        } else {
+            inputs.dt
+        };
+
         
         if inputs.just_pressed(VirtualKeyCode::Space) {
             // self.player_velocidad = -1.0;
             self.grav_dir *= -1.0;
         }
         
+        self.t += game_dt;
+        self.score += game_dt * 100.0;
         
         if !self.paused && !self.dead {
-            self.t += inputs.dt;
-            self.score += inputs.dt * 100.0;
-            self.player_velocidad += gravity * inputs.dt as f32 * self.grav_dir;
-            self.player_position += self.player_velocidad * inputs.dt as f32;
+            self.player_velocidad += gravity * game_dt as f32 * self.grav_dir;
+            self.player_position += self.player_velocidad * game_dt as f32;
             for wall in self.walls.iter_mut() {
-                wall.x -= wall_speed * inputs.dt as f32;
+                wall.x -= wall_speed * game_dt as f32;
             }
             for pickup in self.pickups.iter_mut() {
-                pickup.x -= wall_speed * inputs.dt as f32;
+                pickup.x -= wall_speed * game_dt as f32;
             }
 
             // spawn clouds
-            if self.cloud_spawn_timer.tick(inputs.dt) {
+            if self.cloud_spawn_timer.tick(game_dt) {
                 if chance(inputs.seed * 1295497987, 0.1) {
                     self.clouds_near.push((inputs.seed * 982894397, inputs.screen_rect.right() + 0.2));
                 }
-                if chance(inputs.seed * 35873457, 0.2) {
+                if chance(inputs.seed * 35873457, 0.15) {
                     self.clouds_mid.push((inputs.seed * 3842348749, inputs.screen_rect.right() + 0.2));
                 }
-                if chance(inputs.seed * 576345763, 0.3) {
+                if chance(inputs.seed * 576345763, 0.2) {
                     self.clouds_far.push((inputs.seed * 934697577, inputs.screen_rect.right() + 0.2));
                 }
 
@@ -159,20 +177,20 @@ impl Game {
             // move clouds
             for i in 0..self.clouds_near.len() {
                 let (seed, pos) = self.clouds_near[i];
-                self.clouds_near[i] = (seed, pos - inputs.dt as f32 * 0.1);
+                self.clouds_near[i] = (seed, pos - game_dt as f32 * 0.1);
             }
             for i in 0..self.clouds_mid.len() {
                 let (seed, pos) = self.clouds_mid[i];
-                self.clouds_mid[i] = (seed, pos - inputs.dt as f32 * 0.05);
+                self.clouds_mid[i] = (seed, pos - game_dt as f32 * 0.05);
             }
             for i in 0..self.clouds_far.len() {
                 let (seed, pos) = self.clouds_far[i];
-                self.clouds_far[i] = (seed, pos - inputs.dt as f32 * 0.025);
+                self.clouds_far[i] = (seed, pos - game_dt as f32 * 0.025);
             }
         }
 
 
-        if self.wall_spawn_timer.tick(inputs.dt) {
+        if self.wall_spawn_timer.tick(game_dt) {
             let h = kuniform(self.wall_sequence.sample(), 0.0, inputs.screen_rect.bot() - gap_h);
             self.walls.push(Rect::new(inputs.screen_rect.right(), -10.0, wall_w, 10.0 + h));
             self.walls.push(Rect::new(inputs.screen_rect.right(), h + gap_h, wall_w, 10.4));
@@ -194,10 +212,7 @@ impl Game {
             }
         }
 
-        if inputs.just_pressed(VirtualKeyCode::R) {
-            *self = Game::new(inputs.seed);
-            return;
-        }
+
 
         // player collides with walls
         let player_pos = Vec2::new(player_x, self.player_position);
@@ -271,21 +286,55 @@ impl Game {
             kc.circle(*pickup, 0.02);
         }
 
-        kc.set_depth(2.0);
-        kc.set_colour(Vec4::new(1.0, 1.0, 1.0, 1.0));
-        if self.dead {
-            let sr = inputs.screen_rect.dilate_pc(-0.6);
-            kc.text_center(format!("{:.0}", self.score).as_bytes(), sr);
-            kc.text_center("you died, press R to reset".as_bytes(), sr.translate(Vec2::new(0.0, sr.h))); // bug ???
-        } else {
-            kc.text_center(format!("{:.0}", self.score).as_bytes(), inputs.screen_rect.child(0.0, 0.0, 1.0, 0.05));
-        }
-        
+        // paused overlay
         if self.paused {
             kc.set_colour(Vec4::new(1.0, 1.0, 1.0, 0.5));
             kc.set_depth(10.0);
             kc.rect(inputs.screen_rect);
         }
 
+        // text + control flow
+
+        kc.set_depth(2.0);
+        kc.set_colour(Vec4::new(1.0, 1.0, 1.0, 1.0));
+
+        let alive_score_rect = inputs.screen_rect.child(0.0, 0.0, 1.0, 0.05);
+        let dead_score_rect = inputs.screen_rect.child(0.0, 0.4, 1.0, 0.2);
+
+        if self.tutorial_phase == 0 {
+            let text_rect = inputs.screen_rect.dilate_pc(-0.2);
+            kc.text_center("Press space to reverse gravity".as_bytes(), text_rect); // bug ???
+            if inputs.just_pressed(VirtualKeyCode::Space) {
+                self.tutorial_phase = 1;
+            }
+        } else if self.tutorial_phase == 1 {
+            let text_rect = inputs.screen_rect.dilate_pc(-0.15);
+            
+            kc.text_center("Press space to reverse gravity again".as_bytes(), text_rect); // bug ???
+            if inputs.just_pressed(VirtualKeyCode::Space) {
+                self.tutorial_phase = 2;
+            }
+        } else if self.tutorial_phase == 2 && !self.dead {
+            let sr = inputs.screen_rect.child(0.0, 0.0, 1.0, 0.05);
+            kc.text_center(format!("{:.0}", self.score).as_bytes(), sr);
+        } else if self.tutorial_phase == 2 && self.dead {
+            self.score_lerp_timer += inputs.dt as f32;
+            let mut text_rect = inputs.screen_rect.dilate_pc(-0.2);
+            text_rect.y += 0.2;
+
+            
+            if self.score_lerp_timer/score_time > 1.0 {
+                self.score_lerp_timer = 1.0*score_time;
+                kc.text_center("You died, press space to reset".as_bytes(), text_rect); // bug ???
+                if inputs.just_pressed(VirtualKeyCode::Space) {
+                    *self = Game::new(inputs.seed);
+                }
+            }
+            let sr = alive_score_rect.lerp(dead_score_rect, self.score_lerp_timer/score_time);
+            kc.text_center(format!("{:.0}", self.score).as_bytes(), sr);
+            
+        }
     }
 }
+
+// fade score in death screen
