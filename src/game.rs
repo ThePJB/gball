@@ -131,12 +131,10 @@ impl Game {
         let gap_h = 0.4;
         let wall_w = 0.2;
 
-        let score_time = 2.0;
+        let score_time = 1.0;
 
         let game_dt = if self.paused || self.dead {
             0.0
-        } else if self.tutorial_phase < 2 {
-            inputs.dt / 4.0
         } else {
             inputs.dt
         };
@@ -191,6 +189,7 @@ impl Game {
 
 
         if self.wall_spawn_timer.tick(game_dt) {
+            // let gap_h = kuniform(self.wall_sequence.peek() * 13912417, 0.5, 0.3);
             let h = kuniform(self.wall_sequence.sample(), 0.0, inputs.screen_rect.bot() - gap_h);
             self.walls.push(Rect::new(inputs.screen_rect.right(), -10.0, wall_w, 10.0 + h));
             self.walls.push(Rect::new(inputs.screen_rect.right(), h + gap_h, wall_w, 10.4));
@@ -224,7 +223,7 @@ impl Game {
             }
         }
         
-        if self.player_position < inputs.screen_rect.top() || self.player_position > inputs.screen_rect.bot() {
+        if self.player_position < inputs.screen_rect.top() - player_radius - forgive_radius || self.player_position > inputs.screen_rect.bot() + player_radius + forgive_radius {
             self.dead = true;
         }
 
@@ -244,14 +243,19 @@ impl Game {
         self.walls.retain(|w| w.right() > 0.0);
 
         // bg
+        let (sky, ocean) = inputs.screen_rect.split_ud(0.7);
         kc.set_camera(inputs.screen_rect);
         kc.set_depth(1.0);
-        kc.set_colour(Vec4::new(0.3, 0.3, 0.7, 1.0));
-        kc.rect(inputs.screen_rect);
+        let col_top = Vec4::new(0.2, 0.2, 0.8, 1.0);
+        // let col_bot = Vec4::new(0.3, 0.3, 0.7, 1.0);
+        let col_bot = Vec4::new(0.3, 0.3, 1.0, 1.0);
+
+        kc.grad_rect_ud(sky, col_top, col_bot);
         
         kc.set_depth(1.05);
-        kc.set_colour(Vec4::new(0.1, 0.1, 0.8, 1.0));
-        kc.rect(inputs.screen_rect.child(0.0, 0.7, 1.0, 1.0));
+        let col_far = Vec4::new(0.2, 0.2, 0.55, 1.0);
+        let col_near = Vec4::new(0.2, 0.2, 0.65, 1.0);
+        kc.grad_rect_ud(ocean, col_far, col_near);
 
         // clouds
         kc.set_depth(1.1);
@@ -278,7 +282,13 @@ impl Game {
         // walls
         kc.set_colour(Vec4::new(0.0, 0.7, 0.0, 1.0));
         for wall in self.walls.iter() {
-            kc.rect(*wall);
+            let (l, r) = wall.split_lr(0.5);
+            let col_c = Vec4::new(0.0, 0.7, 0.0, 1.0);
+            let col_l = Vec4::new(0.0, 0.8, 0.0, 1.0);
+            let col_r = Vec4::new(0.0, 0.6, 0.0, 1.0);
+            kc.grad_rect_lr(l, col_l, col_c);
+            kc.grad_rect_lr(r, col_c, col_r);
+
         }
         // pickups
         kc.set_colour(Vec4::new(0.8, 0.0, 0.0, 1.0));
@@ -333,6 +343,10 @@ impl Game {
             let sr = alive_score_rect.lerp(dead_score_rect, self.score_lerp_timer/score_time);
             kc.text_center(format!("{:.0}", self.score).as_bytes(), sr);
             
+        }
+
+        if self.dead && self.tutorial_phase < 2 {
+            *self = Game::new(inputs.seed);
         }
     }
 }

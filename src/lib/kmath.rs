@@ -514,6 +514,13 @@ impl Rect {
             self.h / from.h * to.h,
         )
     }
+
+    pub fn split_ud(&self, t: f32) -> (Rect, Rect) {
+        (self.child(0.0, 0.0, 1.0, t), self.child(0.0, t, 1.0, 1.0 - t))
+    }
+    pub fn split_lr(&self, t: f32) -> (Rect, Rect) {
+        (self.child(0.0, 0.0, t, 1.0), self.child(t, 0.0, 1.0 - t, 1.0))
+    }
 }
 
 pub struct Triangle {

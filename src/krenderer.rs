@@ -145,6 +145,51 @@ impl KRCanvas {
         write_vec2_bytes(&mut self.buf, c.transform(self.uv_from, self.uv_clip));
     }
 
+    pub fn vertex(&mut self, pos: Vec2, depth: f32, colour: Vec4) {
+        let write_float_bytes = |buf: &mut Vec<u8>, x: f32| {
+            for b in x.to_le_bytes() {
+                buf.push(b);
+            }
+        };
+        // ndc
+        let to_rect = Rect::new(0.0, 0.0, 1.0, 1.0);
+
+        let pos3 = pos.transform(self.from_rect, to_rect).promote(self.depth);
+        let uv = pos.transform(self.uv_from, self.uv_clip);
+
+        write_float_bytes(&mut self.buf, pos3.x);
+        write_float_bytes(&mut self.buf, pos3.y);
+        write_float_bytes(&mut self.buf, pos3.z);
+        write_float_bytes(&mut self.buf, colour.x);
+        write_float_bytes(&mut self.buf, colour.y);
+        write_float_bytes(&mut self.buf, colour.z);
+        write_float_bytes(&mut self.buf, colour.w);
+        write_float_bytes(&mut self.buf, uv.x);
+        write_float_bytes(&mut self.buf, uv.y);
+    }
+
+    pub fn grad_rect_ud(&mut self, r: Rect, col_top: Vec4, col_bot: Vec4) {
+        self.uv_from = r;
+        self.vertex(r.tl(), self.depth, col_top);
+        self.vertex(r.tr(), self.depth, col_top);
+        self.vertex(r.bl(), self.depth, col_bot);
+
+        self.vertex(r.tr(), self.depth, col_top);
+        self.vertex(r.bl(), self.depth, col_bot);
+        self.vertex(r.br(), self.depth, col_bot);
+    }
+
+    pub fn grad_rect_lr(&mut self, r: Rect, col_l: Vec4, col_r: Vec4) {
+        self.uv_from = r;
+        self.vertex(r.tl(), self.depth, col_l);
+        self.vertex(r.tr(), self.depth, col_r);
+        self.vertex(r.bl(), self.depth, col_l);
+
+        self.vertex(r.tr(), self.depth, col_r);
+        self.vertex(r.bl(), self.depth, col_l);
+        self.vertex(r.br(), self.depth, col_r);
+    }
+
     pub fn rect(&mut self, r: Rect) {
         self.uv_from = r;
         self.triangle(r.tl(), r.tr(), r.bl());

@@ -153,6 +153,7 @@ unsafe fn opengl_boilerplate(xres: f32, yres: f32, event_loop: &glutin::event_lo
         // .with_srgb(true)
         // .with_stencil_buffer(0)
         // .with_vsync(true)
+        .with_pixel_format(8, 0)
         .build_windowed(window_builder, &event_loop)
         .unwrap()
         .make_current()
@@ -162,6 +163,7 @@ unsafe fn opengl_boilerplate(xres: f32, yres: f32, event_loop: &glutin::event_lo
     let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
     gl.enable(DEPTH_TEST);
     // gl.enable(CULL_FACE);
+    
     gl.blend_func(SRC_ALPHA, ONE_MINUS_SRC_ALPHA);
     gl.enable(BLEND);
     gl.debug_message_callback(|a, b, c, d, msg| {
