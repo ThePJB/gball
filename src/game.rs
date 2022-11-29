@@ -59,6 +59,7 @@ impl RepeatTimer {
 pub struct Game {
     player_position: f32,
     player_velocidad: f32,
+    player_current_anim_r: f32,
 
     grav_dir: f32,
     
@@ -91,6 +92,7 @@ impl Game {
         Game {
             player_position: 0.3,
             player_velocidad: 0.0,
+            player_current_anim_r: 0.0,
 
             grav_dir: 1.0,
 
@@ -123,6 +125,7 @@ impl Game {
         let gravity = 1.8;
         let player_x = 0.5;
         let player_radius = 0.02;
+        
         let forgive_radius = 0.01;
         let pickup_radius = 0.02;
         let pickup_score = 1000.0;
@@ -143,7 +146,16 @@ impl Game {
         if inputs.just_pressed(VirtualKeyCode::Space) {
             // self.player_velocidad = -1.0;
             self.grav_dir *= -1.0;
+            self.player_current_anim_r = 0.007;
         }
+        self.player_current_anim_r = 0.0f32.max(self.player_current_anim_r - 0.05*game_dt as f32);
+        // self.player_current_anim_r *= 5.0 * game_dt as f32;
+
+        // if self.grav_dir < 0.0 {
+        //     kc.flip_y_h = Some(inputs.screen_rect.h);
+        // } else {
+        //     kc.flip_y_h = None;
+        // }
         
         self.t += game_dt;
         self.score += game_dt * 100.0;
@@ -276,20 +288,29 @@ impl Game {
         
         // player
         kc.set_depth(1.5);
-        kc.set_colour(Vec4::new(1.0, 1.0, 0.0, 1.0));
-        kc.circle(player_pos, player_radius + forgive_radius);
+        if self.grav_dir > 0.0 {
+            kc.set_colour(Vec4::new(1.0, 0.9, 0.0, 1.0));
+        } else {
+            kc.set_colour(Vec4::new(1.0, 0.9, 0.0, 1.0));
+            // kc.set_colour(Vec4::new(0.1, 1.0, 0.0, 1.0));
+        }
+        kc.circle(player_pos, player_radius + forgive_radius + self.player_current_anim_r);
 
         // walls
-        kc.set_colour(Vec4::new(0.0, 0.7, 0.0, 1.0));
+        kc.set_colour(Vec4::new(0.4, 0.0, 0.0, 1.0));
         for wall in self.walls.iter() {
-            let (l, r) = wall.split_lr(0.5);
-            let col_c = Vec4::new(0.0, 0.7, 0.0, 1.0);
-            let col_l = Vec4::new(0.0, 0.8, 0.0, 1.0);
-            let col_r = Vec4::new(0.0, 0.6, 0.0, 1.0);
-            kc.grad_rect_lr(l, col_l, col_c);
-            kc.grad_rect_lr(r, col_c, col_r);
-
+            kc.rect(*wall);
         }
+        
+        //     let (l, r) = wall.split_lr(0.5);
+
+            
+        //     let col_l = Vec4::new(0.7, 0.45, 0.2, 1.0);
+        //     let col_r = Vec4::new(0.6, 0.45, 0.2, 1.0);
+        //     kc.grad_rect_lr(l, col_l, col_c);
+        //     kc.grad_rect_lr(r, col_c, col_r);
+
+        // }
         // pickups
         kc.set_colour(Vec4::new(0.8, 0.0, 0.0, 1.0));
         for pickup in self.pickups.iter() {
@@ -311,19 +332,23 @@ impl Game {
         let alive_score_rect = inputs.screen_rect.child(0.0, 0.0, 1.0, 0.05);
         let dead_score_rect = inputs.screen_rect.child(0.0, 0.4, 1.0, 0.2);
 
-        if self.tutorial_phase == 0 {
+        if self.tutorial_phase == 0 || self.tutorial_phase == 1 {
             let text_rect = inputs.screen_rect.dilate_pc(-0.2);
             kc.text_center("Press space to reverse gravity".as_bytes(), text_rect); // bug ???
-            if inputs.just_pressed(VirtualKeyCode::Space) {
-                self.tutorial_phase = 1;
-            }
-        } else if self.tutorial_phase == 1 {
-            let text_rect = inputs.screen_rect.dilate_pc(-0.15);
             
-            kc.text_center("Press space to reverse gravity again".as_bytes(), text_rect); // bug ???
-            if inputs.just_pressed(VirtualKeyCode::Space) {
-                self.tutorial_phase = 2;
-            }
+            if self.tutorial_phase == 1 {
+                let mut text_rect = inputs.screen_rect.dilate_pc(-0.2);
+                text_rect.h -= 1.2 * text_rect.h;
+                
+                kc.text_center("again".as_bytes(), text_rect); // bug ???
+                if inputs.just_pressed(VirtualKeyCode::Space) {
+                    self.tutorial_phase = 2;
+                }
+            } else {
+                if inputs.just_pressed(VirtualKeyCode::Space) {
+                    self.tutorial_phase = 1;
+                }
+            } 
         } else if self.tutorial_phase == 2 && !self.dead {
             let sr = inputs.screen_rect.child(0.0, 0.0, 1.0, 0.05);
             kc.text_center(format!("{:.0}", self.score).as_bytes(), sr);

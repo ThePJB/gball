@@ -76,12 +76,14 @@ impl KRenderer {
 }
 
 pub struct KRCanvas {
-    depth: f32,
-    colour: Vec4,
-    buf: Vec<u8>,
-    uv_clip: Rect,
-    uv_from: Rect,
-    from_rect: Rect,
+    pub depth: f32,
+    pub colour: Vec4,
+    pub buf: Vec<u8>,
+    pub uv_clip: Rect,
+    pub uv_from: Rect,
+    pub from_rect: Rect,
+    pub flip_y_h: Option<f32>,
+
 }
 
 impl KRCanvas {
@@ -93,6 +95,7 @@ impl KRCanvas {
             uv_clip: Rect::new(0.0, 0.0, 1.0/20.0, 1.0/20.0),
             uv_from: Rect::new(-1000.0, -1000.0, 2000.0, 2000.0),
             from_rect: Rect::new(-1.0, -1.0, 2.0, 2.0),
+            flip_y_h: None,
         }
     }
     pub fn set_colour(&mut self, c: Vec4) {
@@ -106,7 +109,12 @@ impl KRCanvas {
         self.from_rect = cam;
     }
 
-    pub fn triangle(&mut self, a: Vec2, b: Vec2, c: Vec2) {
+    pub fn triangle(&mut self, mut a: Vec2, mut b: Vec2, mut c: Vec2) {
+        if let Some(h) = self.flip_y_h {
+            a.y = h - a.y;
+            b.y = h - b.y;
+            c.y = h - c.y;
+        }
         self.uv_from = Triangle{a,b,c}.aabb();
         let write_float_bytes = |buf: &mut Vec<u8>, x: f32| {
             for b in x.to_le_bytes() {
@@ -244,3 +252,11 @@ impl KRCanvas {
         self.circle(c3, r3);
     }
 }
+
+// elements could be a tree coming in from the 
+// elements are a tree lol. but does that help in any way?
+
+pub fn text_layout(len: usize, x: f32, y: f32, char_w: f32, char_h: f32) -> Rect {
+    return Rect::new(x, y, char_w * len as f32, char_h);
+}
+

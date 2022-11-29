@@ -152,7 +152,7 @@ unsafe fn opengl_boilerplate(xres: f32, yres: f32, event_loop: &glutin::event_lo
         // .with_depth_buffer(0)
         // .with_srgb(true)
         // .with_stencil_buffer(0)
-        // .with_vsync(true)
+        .with_vsync(true)
         .with_pixel_format(8, 0)
         .build_windowed(window_builder, &event_loop)
         .unwrap()

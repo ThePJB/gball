@@ -26,6 +26,7 @@ pub struct FrameInputState {
     pub screen_rect: Rect,
     pub mouse_pos: Vec2,
     pub mouse_delta: Vec2,
+
     pub keys: HashMap<VirtualKeyCode, KeyStatus>,
     pub lmb: KeyStatus,
     pub rmb: KeyStatus,
