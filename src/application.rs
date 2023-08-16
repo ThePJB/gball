@@ -166,9 +166,9 @@ unsafe fn opengl_boilerplate(xres: f32, yres: f32, event_loop: &glutin::event_lo
     
     gl.blend_func(SRC_ALPHA, ONE_MINUS_SRC_ALPHA);
     gl.enable(BLEND);
-    gl.debug_message_callback(|a, b, c, d, msg| {
-        println!("{} {} {} {} msg: {}", a, b, c, d, msg);
-    });
+    // gl.debug_message_callback(|a, b, c, d, msg| {
+    //     println!("{} {} {} {} msg: {}", a, b, c, d, msg);
+    // });
 
     (gl, window)
 }
