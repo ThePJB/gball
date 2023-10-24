@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::lib::kinput::*;
 use crate::lib::kmath::*;
 use crate::krenderer::*;
@@ -143,7 +145,7 @@ impl Game {
         };
 
         
-        if inputs.just_pressed(VirtualKeyCode::Space) {
+        if inputs.just_pressed(VirtualKeyCode::Space) || inputs.lmb == KeyStatus::JustPressed {
             // self.player_velocidad = -1.0;
             self.grav_dir *= -1.0;
             self.player_current_anim_r = 0.007;
@@ -276,24 +278,36 @@ impl Game {
             kc.cloud(Rect::new(*xpos, 0.6, 0.1, 0.05), *seed)            
         }
         kc.set_depth(1.2);
-        kc.set_colour(Vec4::new(0.7, 0.7, 0.8, 1.0));
+        kc.set_colour(Vec4::new(0.65, 0.65, 0.75, 1.0));
         for (seed, xpos) in &self.clouds_mid {
             kc.cloud(Rect::new(*xpos, 0.533, 0.15, 0.07), *seed)            
         }
         kc.set_depth(1.3);
-        kc.set_colour(Vec4::new(0.8, 0.8, 0.9, 1.0));
+        kc.set_colour(Vec4::new(0.7, 0.7, 0.8, 1.0));
         for (seed, xpos) in &self.clouds_near {
             kc.cloud(Rect::new(*xpos, 0.467, 0.2, 0.09), *seed)            
         }
         
         // player
         kc.set_depth(1.5);
+        kc.set_colour(Vec4::new(0.0, 0.9, 0.9, 1.0));
+
+        let r = (player_radius + forgive_radius) * 0.9;
         if self.grav_dir > 0.0 {
-            kc.set_colour(Vec4::new(1.0, 0.9, 0.0, 1.0));
+            kc.triangle(
+                r_theta_vec(r, PI/2.0, player_pos),
+                r_theta_vec(r, PI/2.0 + 2.0*PI/3.0, player_pos),
+                r_theta_vec(r, PI/2.0 + 4.0*PI/3.0, player_pos),
+            );
         } else {
-            kc.set_colour(Vec4::new(1.0, 0.9, 0.0, 1.0));
-            // kc.set_colour(Vec4::new(0.1, 1.0, 0.0, 1.0));
+            kc.triangle(
+                r_theta_vec(r, PI + PI/2.0, player_pos),
+                r_theta_vec(r, PI + PI/2.0 + 2.0*PI/3.0, player_pos),
+                r_theta_vec(r, PI + PI/2.0 + 4.0*PI/3.0, player_pos),
+            );
         }
+        let r = self.player_velocidad.abs() * 0.6;
+        kc.set_colour(Vec4::new(r, 0.0, 1.0 - r, 1.0));
         kc.circle(player_pos, player_radius + forgive_radius + self.player_current_anim_r);
 
         // walls
@@ -331,32 +345,13 @@ impl Game {
 
         let alive_score_rect = inputs.screen_rect.child(0.0, 0.0, 1.0, 0.05);
         let dead_score_rect = inputs.screen_rect.child(0.0, 0.4, 1.0, 0.2);
-
-        if self.tutorial_phase == 0 || self.tutorial_phase == 1 {
-            let text_rect = inputs.screen_rect.dilate_pc(-0.2);
-            kc.text_center("Press space to reverse gravity".as_bytes(), text_rect); // bug ???
-            
-            if self.tutorial_phase == 1 {
-                let mut text_rect = inputs.screen_rect.dilate_pc(-0.2);
-                text_rect.h -= 1.2 * text_rect.h;
-                
-                kc.text_center("again".as_bytes(), text_rect); // bug ???
-                if inputs.just_pressed(VirtualKeyCode::Space) {
-                    self.tutorial_phase = 2;
-                }
-            } else {
-                if inputs.just_pressed(VirtualKeyCode::Space) {
-                    self.tutorial_phase = 1;
-                }
-            } 
-        } else if self.tutorial_phase == 2 && !self.dead {
+        if !self.dead {
             let sr = inputs.screen_rect.child(0.0, 0.0, 1.0, 0.05);
             kc.text_center(format!("{:.0}", self.score).as_bytes(), sr);
-        } else if self.tutorial_phase == 2 && self.dead {
+        } else {
             self.score_lerp_timer += inputs.dt as f32;
             let mut text_rect = inputs.screen_rect.dilate_pc(-0.2);
             text_rect.y += 0.2;
-
             
             if self.score_lerp_timer/score_time > 1.0 {
                 self.score_lerp_timer = 1.0*score_time;
@@ -377,3 +372,7 @@ impl Game {
 }
 
 // fade score in death screen
+
+pub fn r_theta_vec(r: f32, theta: f32, orig: Vec2) -> Vec2 {
+    Vec2 { x: orig.x + r * theta.cos(), y: orig.y + r * theta.sin() }
+}

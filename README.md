@@ -25,4 +25,4 @@ but want a desccending sound, so go phase as well
     you might even want an ambient channel
 
 
-
+needs to indicate ball velocity too
