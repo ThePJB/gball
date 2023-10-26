@@ -343,8 +343,10 @@ version = "0.1.0"
 dependencies = [
  "assert_hex",
  "glow",
+ "glow_mesh",
  "glutin",
  "itertools",
+ "minvect",
  "ordered-float",
  "palette",
  "png",
@@ -372,6 +374,16 @@ dependencies = [
  "slotmap",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "glow_mesh"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b92700a5f855c3da2c594fdc205ddb49b0e010b87104b643a317e242d46c104"
+dependencies = [
+ "glow",
+ "minvect",
 ]
 
 [[package]]
@@ -582,6 +594,12 @@ checksum = "6f5c75688da582b8ffc1f1799e9db273f32133c49e048f614d22ec3256773ccc"
 dependencies = [
  "adler",
 ]
+
+[[package]]
+name = "minvect"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64e1c95f4f2903b7a2d6228ad7faf6b2e98605cb16332f969e4459b4fb31bd37"
 
 [[package]]
 name = "mio"

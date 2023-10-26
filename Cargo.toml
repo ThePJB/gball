@@ -17,3 +17,5 @@ assert_hex = "0.2.2"
 itertools = "0.10.3"
 
 ordered-float = "2.0"
+minvect = "0.1.1"
+glow_mesh = "0.1.1"

@@ -3,6 +3,8 @@ mod application;
 mod krenderer;
 mod kaudio;
 mod game;
+mod render;
+mod rect;
 
 use application::*;
 use glutin::event::{Event, WindowEvent};

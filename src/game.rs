@@ -1,8 +1,10 @@
 use std::f32::consts::PI;
 
 use crate::lib::kinput::*;
-use crate::lib::kmath::*;
 use crate::krenderer::*;
+use minvect::*;
+use crate::lib::kmath::khash;
+use crate::rect::Rect;
 
 use glutin::event::VirtualKeyCode;
 
@@ -59,42 +61,44 @@ impl RepeatTimer {
 }
 
 pub struct Game {
-    player_position: f32,
-    player_velocidad: f32,
-    player_current_anim_r: f32,
+    pub player_pos: Vec2,
+    pub player_vel: Vec2,
+    pub player_r_collision: f32,
+    pub player_r_visual: f32,
 
-    grav_dir: f32,
+    pub grav_dir: f32,
     
-    t: f64,
+    pub t: f64,
 
-    score: f64,
+    pub score: f64,
 
-    wall_sequence: RngSequence,
-    wall_spawn_timer: RepeatTimer,
+    pub wall_sequence: RngSequence,
+    pub wall_spawn_timer: RepeatTimer,
 
-    walls: Vec<Rect>,
-    pickups: Vec<Vec2>,
+    pub walls: Vec<Rect>,
+    pub pickups: Vec<Vec2>,
 
-    clouds_far: Vec<(u32, f32)>,
-    clouds_mid: Vec<(u32, f32)>,
-    clouds_near: Vec<(u32, f32)>,
+    pub clouds_far: Vec<(u32, f32)>,
+    pub clouds_mid: Vec<(u32, f32)>,
+    pub clouds_near: Vec<(u32, f32)>,
 
-    cloud_spawn_timer: RepeatTimer,
+    pub cloud_spawn_timer: RepeatTimer,
 
-    score_lerp_timer: f32,
+    pub score_lerp_timer: f32,
 
-    tutorial_phase: i32,
+    pub tutorial_phase: i32,
+
 
     pub paused: bool,
-    dead: bool,
+    pub dead: bool,
 }
 
 impl Game {
     pub fn new(seed: u32) -> Game {
         Game {
-            player_position: 0.3,
-            player_velocidad: 0.0,
-            player_current_anim_r: 0.0,
+            player_h: 0.3,
+            player_v: 0.0,
+            player_r: 0.0,
 
             grav_dir: 1.0,
 
@@ -146,12 +150,12 @@ impl Game {
 
         
         if inputs.just_pressed(VirtualKeyCode::Space) || inputs.lmb == KeyStatus::JustPressed {
-            // self.player_velocidad = -1.0;
+            // self.player_v = -1.0;
             self.grav_dir *= -1.0;
-            self.player_current_anim_r = 0.007;
+            self.player_r = 0.007;
         }
-        self.player_current_anim_r = 0.0f32.max(self.player_current_anim_r - 0.05*game_dt as f32);
-        // self.player_current_anim_r *= 5.0 * game_dt as f32;
+        self.player_r = 0.0f32.max(self.player_r - 0.05*game_dt as f32);
+        // self.player_r *= 5.0 * game_dt as f32;
 
         // if self.grav_dir < 0.0 {
         //     kc.flip_y_h = Some(inputs.screen_rect.h);
@@ -163,8 +167,8 @@ impl Game {
         self.score += game_dt * 100.0;
         
         if !self.paused && !self.dead {
-            self.player_velocidad += gravity * game_dt as f32 * self.grav_dir;
-            self.player_position += self.player_velocidad * game_dt as f32;
+            self.player_v += gravity * game_dt as f32 * self.grav_dir;
+            self.player_h += self.player_v * game_dt as f32;
             for wall in self.walls.iter_mut() {
                 wall.x -= wall_speed * game_dt as f32;
             }
@@ -228,7 +232,7 @@ impl Game {
 
 
         // player collides with walls
-        let player_pos = Vec2::new(player_x, self.player_position);
+        let player_pos = Vec2::new(player_x, self.player_h);
         for wall in self.walls.iter() {
             let closest_point = wall.snap(player_pos);
             let penetration = player_radius - (closest_point - player_pos).magnitude();
@@ -237,7 +241,7 @@ impl Game {
             }
         }
         
-        if self.player_position < inputs.screen_rect.top() - player_radius - forgive_radius || self.player_position > inputs.screen_rect.bot() + player_radius + forgive_radius {
+        if self.player_h < inputs.screen_rect.top() - player_radius - forgive_radius || self.player_h > inputs.screen_rect.bot() + player_radius + forgive_radius {
             self.dead = true;
         }
 
@@ -290,7 +294,8 @@ impl Game {
         
         // player
         kc.set_depth(1.5);
-        kc.set_colour(Vec4::new(0.0, 0.9, 0.9, 1.0));
+        let r = self.player_v.abs() * 0.6;
+        kc.set_colour(Vec4::new(r, 0.9, 0.9 - r, 1.0));
 
         let r = (player_radius + forgive_radius) * 0.9;
         if self.grav_dir > 0.0 {
@@ -306,9 +311,8 @@ impl Game {
                 r_theta_vec(r, PI + PI/2.0 + 4.0*PI/3.0, player_pos),
             );
         }
-        let r = self.player_velocidad.abs() * 0.6;
-        kc.set_colour(Vec4::new(r, 0.0, 1.0 - r, 1.0));
-        kc.circle(player_pos, player_radius + forgive_radius + self.player_current_anim_r);
+        kc.set_colour(Vec4::new(1.0, 0.0, 1.0, 1.0));
+        kc.circle(player_pos, player_radius + forgive_radius + self.player_r);
 
         // walls
         kc.set_colour(Vec4::new(0.4, 0.0, 0.0, 1.0));
