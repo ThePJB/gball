@@ -3,17 +3,12 @@ use crate::lib::kinput::*;
 use crate::lib::kimg::*;
 use crate::krenderer::*;
 use crate::game::*;
-use glutin::event::{Event, WindowEvent};
 
 pub struct Application {
-    gl: glow::Context,
-    window: glutin::WindowedContext<glutin::PossiblyCurrent>,
 
     renderer: KRenderer,
     event_aggregator: EventAggregator,
 
-    pub xres: f32,
-    pub yres: f32,
 
     game: Game,
 }

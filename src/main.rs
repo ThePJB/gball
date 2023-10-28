@@ -1,10 +1,8 @@
 mod lib;
 mod application;
-mod krenderer;
-mod kaudio;
 mod game;
 mod render;
-mod rect;
+mod game_logic;
 
 use application::*;
 use glutin::event::{Event, WindowEvent};

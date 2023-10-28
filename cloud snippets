@@ -1,0 +1,30 @@
+cloud snippets
+
+
+            // spawn clouds
+            if self.cloud_spawn_timer.tick(game_dt) {
+                if chance(inputs.seed * 1295497987, 0.1) {
+                    self.clouds_near.push((inputs.seed * 982894397, inputs.screen_rect.right() + 0.2));
+                }
+                if chance(inputs.seed * 35873457, 0.15) {
+                    self.clouds_mid.push((inputs.seed * 3842348749, inputs.screen_rect.right() + 0.2));
+                }
+                if chance(inputs.seed * 576345763, 0.2) {
+                    self.clouds_far.push((inputs.seed * 934697577, inputs.screen_rect.right() + 0.2));
+                }
+
+            }
+
+            // move clouds
+            for i in 0..self.clouds_near.len() {
+                let (seed, pos) = self.clouds_near[i];
+                self.clouds_near[i] = (seed, pos - game_dt as f32 * 0.1);
+            }
+            for i in 0..self.clouds_mid.len() {
+                let (seed, pos) = self.clouds_mid[i];
+                self.clouds_mid[i] = (seed, pos - game_dt as f32 * 0.05);
+            }
+            for i in 0..self.clouds_far.len() {
+                let (seed, pos) = self.clouds_far[i];
+                self.clouds_far[i] = (seed, pos - game_dt as f32 * 0.025);
+            }

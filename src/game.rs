@@ -1,79 +1,48 @@
 use std::f32::consts::PI;
+use std::time::Instant;
 
 use crate::lib::kinput::*;
-use crate::krenderer::*;
+
+use glow_mesh::xyzrgba::*;
+use glow_mesh::xyzrgbauv::*;
 use minvect::*;
-use crate::lib::kmath::khash;
-use crate::rect::Rect;
+use minirng::hash::random_seed;
+use glutin::event::{Event, WindowEvent};
+
 
 use glutin::event::VirtualKeyCode;
+use winit::event::ElementState;
 
-// yea maybe the event system cleans up the spawning situation
-
-// procedural clouds!! should be easy, rect for straight bottom and variably sized and offset circles
-// fade and parallax
-
-// Can't trigger more than once per frame
-
-pub struct RngSequence {
-    seed: u32,
-}
-
-impl RngSequence {
-    pub fn new(seed: u32) -> RngSequence {
-        RngSequence {
-            seed
-        }
-    }
-    pub fn sample(&mut self) -> u32 {
-        let res = khash(self.seed);
-        self.seed = khash(self.seed + 394712377);
-        res
-    }
-    pub fn peek(&self) -> u32 {
-        khash(self.seed)
-    }
-}
-
-pub struct RepeatTimer {
-    t: f64,
-    t_next: f64,
-    period: f64,
-}
-
-impl RepeatTimer {
-    pub fn new(period: f64) -> RepeatTimer {
-        return RepeatTimer { 
-            t: 0.0, 
-            t_next: period, // nb
-            period: period,
-        };
-    }
-
-    pub fn tick(&mut self, dt: f64) -> bool {
-        self.t += dt;
-        if self.t >= self.t_next {
-            self.t_next += self.period;
-            return true;
-        }
-        return false;
-    }
-}
+pub const PLAYER_R_BASE: f32 = 0.02;
+pub const PLAYER_R_SYMPATHY: f32 = 0.01;
+pub const GRAVITY: f32 = 1.8;
+pub const CAM_X_OFFSET: f32 = 0.5;
+pub const PICKUP_VALUE: f32 = 1000.0;
+pub const PICKUP_RADIUS: f32 = 0.015;
+pub const GAP_H: f32 = 0.4;
+pub const WALL_W: f32 = 0.2;
 
 pub struct Game {
+    pub gl: glow::Context,
+    pub window: glutin::WindowedContext<glutin::PossiblyCurrent>,
+    pub prog_shape: ProgramXYZRGBA,
+    pub prog_text: ProgramXYZRGBAUV,
+    pub xres: i32,
+    pub yres: i32,
+
+    pub t_last_frame: Instant,
     pub player_pos: Vec2,
     pub player_vel: Vec2,
-    pub player_r_collision: f32,
-    pub player_r_visual: f32,
+    pub t_press: Instant,
 
     pub grav_dir: f32,
     
-    pub t: f64,
+    pub t: f32,
 
     pub score: f64,
 
-    pub wall_sequence: RngSequence,
-    pub wall_spawn_timer: RepeatTimer,
+    pub wall_seed: u32,
+    pub t_last_wall: f32,
 
     pub walls: Vec<Rect>,
     pub pickups: Vec<Vec2>,
@@ -82,76 +51,128 @@ pub struct Game {
     pub clouds_mid: Vec<(u32, f32)>,
     pub clouds_near: Vec<(u32, f32)>,
 
-    pub cloud_spawn_timer: RepeatTimer,
-
-    pub score_lerp_timer: f32,
-
-    pub tutorial_phase: i32,
-
+    pub t_last_cloud: Instant,
 
     pub paused: bool,
     pub dead: bool,
+    pub press: bool,
 }
 
 impl Game {
-    pub fn new(seed: u32) -> Game {
-        Game {
-            player_h: 0.3,
-            player_v: 0.0,
-            player_r: 0.0,
+    pub fn new(event_loop: &glutin::event_loop::EventLoop<()>) -> Self {
+        let xres = 900;
+        let yres = 900;
+    
+        unsafe {
+            let window_builder = glutin::window::WindowBuilder::new()
+                .with_title("gball")
+                .with_inner_size(glutin::dpi::PhysicalSize::new(xres, yres));
+            let window = glutin::ContextBuilder::new()
+                .with_vsync(true)
+                .build_windowed(window_builder, &event_loop)
+                .unwrap()
+                .make_current()
+                .unwrap();
+    
+            let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
+            gl.enable(glow::DEPTH_TEST);
+            gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
+            gl.depth_func(glow::LEQUAL);
+            gl.enable(glow::BLEND);
+    
+            let prog_shape = ProgramXYZRGBA::default(&gl);
+            let img = minimg::ImageBuffer::from_bytes(include_bytes!("../atlas.png"));
+            let prog_text = ProgramXYZRGBAUV::default(&gl, &img);
 
-            grav_dir: 1.0,
+            let now = Instant::now();
+            Game {
+                gl,
+                window,
+                xres,
+                yres,
+                prog_shape,
+                prog_text,
+                t_last_frame: now,
+                player_pos: vec2(0.0, -0.9),
+                player_vel: vec2(0.45, 0.0),
+                t_press: now,
+                grav_dir: 1.0,
+                t: 0.0,
+                score: 0.0,
+                wall_seed: random_seed(),
+                t_last_wall: 0.0,
+                walls: vec![],
+                pickups: vec![],
+                clouds_far: vec![],
+                clouds_mid: vec![],
+                clouds_near: vec![],
+                t_last_cloud: now,
+                paused: false,
+                dead: false,
+                press: false,
+            }
+        }
+    }
+    
+    pub fn handle_event(&mut self, event: &glutin::event::Event<()>) {
+        match event {
+            Event::WindowEvent { ref event, .. } => match event {
+                WindowEvent::Resized(physical_size) => {
+                    self.window.resize(*physical_size);
+                    self.xres = physical_size.width as f32;
+                    self.yres = physical_size.height as f32;
+                    unsafe {self.gl.viewport(0, 0, physical_size.width as i32, physical_size.height as i32)};
+                },
+                WindowEvent::Focused(false) => {
+                    self.paused = true;
+                },
+                WindowEvent::Focused(true) => {
+                    self.paused = false;
+                },
+                WindowEvent::KeyboardInput { device_id, input, is_synthetic } => {
+                    if let Some(keycode) = input.virtual_keycode {
+                        if keycode == VirtualKeyCode::Space {
+                            if input.state == ElementState::Pressed {
+                                if self.press {
+                                    self.press = false;
+                                } else {
+                                    self.press = true;
+                                }
+                            }
+                        }
+                    }
+                },
+                _ => {},
+            }
+            Event::MainEventsCleared => {
+                self.frame();
+                self.render();
+            },
+            _ => {},
+        }
+    }
 
-            t: 0.0,
-
-            paused: false,
-
-            score: 0.0,
-
-            wall_sequence: RngSequence::new(seed * 34982349),
-            wall_spawn_timer: RepeatTimer::new(2.0),
-            walls: Vec::new(),
-            pickups: Vec::new(),
-
-            clouds_far: Vec::new(),
-            clouds_mid: Vec::new(),
-            clouds_near: Vec::new(),
-
-            cloud_spawn_timer: RepeatTimer::new(1.0),
-
-            score_lerp_timer: 0.0,
-
-            tutorial_phase: 0,
-
-            dead: false,
+    pub fn render(&self) {
+        unsafe {
+            self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
+            self.gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT); 
+            let buf = self.get_geometry();
+            let h = upload_xyzrgba_mesh(&buf, &self.gl);
+            self.prog_shape.bind(&self.gl);
+            h.render(&self.gl);
+            let buf = self.get_text();
+            let h = upload_xyzrgbauv_mesh(&buf, &self.gl);
+            self.prog_text.bind(&self.gl);
+            h.render(&self.gl);
+            self.window.swap_buffers().unwrap();
         }
     }
     
     pub fn frame(&mut self, inputs: &FrameInputState, kc: &mut KRCanvas) {
-        let gravity = 1.8;
-        let player_x = 0.5;
-        let player_radius = 0.02;
-        
-        let forgive_radius = 0.01;
-        let pickup_radius = 0.02;
-        let pickup_score = 1000.0;
-
-        let wall_speed = 0.45;
-        let gap_h = 0.4;
-        let wall_w = 0.2;
-
-        let score_time = 1.0;
-
-        let game_dt = if self.paused || self.dead {
-            0.0
-        } else {
-            inputs.dt
-        };
 
         
         if inputs.just_pressed(VirtualKeyCode::Space) || inputs.lmb == KeyStatus::JustPressed {
             // self.player_v = -1.0;
-            self.grav_dir *= -1.0;
             self.player_r = 0.007;
         }
         self.player_r = 0.0f32.max(self.player_r - 0.05*game_dt as f32);
@@ -163,72 +184,6 @@ impl Game {
         //     kc.flip_y_h = None;
         // }
         
-        self.t += game_dt;
-        self.score += game_dt * 100.0;
-        
-        if !self.paused && !self.dead {
-            self.player_v += gravity * game_dt as f32 * self.grav_dir;
-            self.player_h += self.player_v * game_dt as f32;
-            for wall in self.walls.iter_mut() {
-                wall.x -= wall_speed * game_dt as f32;
-            }
-            for pickup in self.pickups.iter_mut() {
-                pickup.x -= wall_speed * game_dt as f32;
-            }
-
-            // spawn clouds
-            if self.cloud_spawn_timer.tick(game_dt) {
-                if chance(inputs.seed * 1295497987, 0.1) {
-                    self.clouds_near.push((inputs.seed * 982894397, inputs.screen_rect.right() + 0.2));
-                }
-                if chance(inputs.seed * 35873457, 0.15) {
-                    self.clouds_mid.push((inputs.seed * 3842348749, inputs.screen_rect.right() + 0.2));
-                }
-                if chance(inputs.seed * 576345763, 0.2) {
-                    self.clouds_far.push((inputs.seed * 934697577, inputs.screen_rect.right() + 0.2));
-                }
-
-            }
-
-            // move clouds
-            for i in 0..self.clouds_near.len() {
-                let (seed, pos) = self.clouds_near[i];
-                self.clouds_near[i] = (seed, pos - game_dt as f32 * 0.1);
-            }
-            for i in 0..self.clouds_mid.len() {
-                let (seed, pos) = self.clouds_mid[i];
-                self.clouds_mid[i] = (seed, pos - game_dt as f32 * 0.05);
-            }
-            for i in 0..self.clouds_far.len() {
-                let (seed, pos) = self.clouds_far[i];
-                self.clouds_far[i] = (seed, pos - game_dt as f32 * 0.025);
-            }
-        }
-
-
-        if self.wall_spawn_timer.tick(game_dt) {
-            // let gap_h = kuniform(self.wall_sequence.peek() * 13912417, 0.5, 0.3);
-            let h = kuniform(self.wall_sequence.sample(), 0.0, inputs.screen_rect.bot() - gap_h);
-            self.walls.push(Rect::new(inputs.screen_rect.right(), -10.0, wall_w, 10.0 + h));
-            self.walls.push(Rect::new(inputs.screen_rect.right(), h + gap_h, wall_w, 10.4));
-            
-            let halfway = ((self.wall_spawn_timer.period / 2.0) * wall_speed as f64) as f32;
-            if chance(self.wall_sequence.peek() * 3458793547, 0.5) {
-                // place a pickup
-                let h =  if chance(inputs.seed * 123891, 0.5) {inputs.screen_rect.top() + 0.2} else {inputs.screen_rect.bot() - 0.2};
-                let new_pickup = Vec2::new(inputs.screen_rect.right() + pickup_radius + halfway + wall_w/2.0, h);
-                self.pickups.push(new_pickup);
-            } else {
-                // place an intermediate wall
-                if chance(self.wall_sequence.peek() * 548965757, 0.1) {
-                    let next_h = kuniform(self.wall_sequence.peek(), 0.0, inputs.screen_rect.bot() - gap_h);
-                    let h = (h + next_h)/2.0;
-                    self.walls.push(Rect::new(inputs.screen_rect.right() + halfway, -10.0, wall_w, 10.0 + h));
-                    self.walls.push(Rect::new(inputs.screen_rect.right() + halfway, h + gap_h, wall_w, 10.4));
-                }
-            }
-        }
-
 
 
         // player collides with walls
@@ -376,7 +331,3 @@ impl Game {
 }
 
 // fade score in death screen
-
-pub fn r_theta_vec(r: f32, theta: f32, orig: Vec2) -> Vec2 {
-    Vec2 { x: orig.x + r * theta.cos(), y: orig.y + r * theta.sin() }
-}

@@ -10,12 +10,8 @@ glow = "0.11.0"
 glutin = "0.28"
 winit = "0.26.1"
 
-png = "0.17.1"
-palette = "0.2.1"
-assert_hex = "0.2.2"
-
-itertools = "0.10.3"
-
 ordered-float = "2.0"
-minvect = "0.1.1"
-glow_mesh = "0.1.1"
+minvect = "0.1.3"
+glow_mesh = "0.1.2"
+minimg = "0.1.2"
+minirng = "0.1.0"

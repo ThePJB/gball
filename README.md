@@ -26,3 +26,6 @@ but want a desccending sound, so go phase as well
 
 
 needs to indicate ball velocity too
+
+
+lol wat if u just made it fkn red hot with some psytrance and some julia sets dancing in the background, gball psytrance skin
