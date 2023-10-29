@@ -34,40 +34,16 @@ impl Game {
         self.score += 100.0 * dt;
         self.player_vel.y += dt * GRAVITY * self.grav_dir;
         self.player_pos += self.player_vel * dt;
-
-        // wall spawning
         
-        if self.wall_spawn_timer.tick(game_dt) {
-            // let gap_h = kuniform(self.wall_sequence.peek() * 13912417, 0.5, 0.3);
-            let h = kuniform(self.wall_sequence.sample(), 0.0, inputs.screen_rect.bot() - gap_h);
-            self.walls.push(Rect::new(inputs.screen_rect.right(), -10.0, wall_w, 10.0 + h));
-            self.walls.push(Rect::new(inputs.screen_rect.right(), h + gap_h, wall_w, 10.4));
-            
-            let halfway = ((self.wall_spawn_timer.period / 2.0) * wall_speed as f64) as f32;
-            if chance(self.wall_sequence.peek() * 3458793547, 0.5) {
-                // place a pickup
-                let h =  if chance(inputs.seed * 123891, 0.5) {inputs.screen_rect.top() + 0.2} else {inputs.screen_rect.bot() - 0.2};
-                let new_pickup = Vec2::new(inputs.screen_rect.right() + pickup_radius + halfway + wall_w/2.0, h);
-                self.pickups.push(new_pickup);
-            } else {
-                // place an intermediate wall
-                if chance(self.wall_sequence.peek() * 548965757, 0.1) {
-                    let next_h = kuniform(self.wall_sequence.peek(), 0.0, inputs.screen_rect.bot() - gap_h);
-                    let h = (h + next_h)/2.0;
-                    self.walls.push(Rect::new(inputs.screen_rect.right() + halfway, -10.0, wall_w, 10.0 + h));
-                    self.walls.push(Rect::new(inputs.screen_rect.right() + halfway, h + gap_h, wall_w, 10.4));
-                }
-            }
-        }
-
+        // wall spawning
 
         // cloud spawning and moving
 
         // dying of offscreen
 
         // die to walls
-        for wall in self.walls {
-            let d = sd_rect(wall, self.player_pos);
+        for wall in self.walls.iter() {
+            let d = sd_rect(self.player_pos, *wall);
             if d < (PLAYER_R_BASE - PLAYER_R_SYMPATHY) {
                 // player dies
                 self.dead = true;
@@ -75,20 +51,20 @@ impl Game {
         }
 
         // cull offscreen walls
-        let mut i = self.pickups.len();
+        let mut i = self.walls.len();
         loop {
+            if i == 0 { break; }
             i -= 1;
             
             if self.walls[i].tl().x < self.player_pos.x - 2.0 {
-                self.walls.swap_remove(i)
+                self.walls.swap_remove(i);
             }
-
-            if i == 0 { break; }
         }
 
         // collect pickups
         let mut i = self.pickups.len();
         loop {
+            if i == 0 { break; }
             i -= 1;
 
             let v = self.player_pos - self.pickups[i];
@@ -100,8 +76,6 @@ impl Game {
                 // cull offscreen pickups
                 self.pickups.swap_remove(i);
             }
-            
-            if i == 0 { break; }
         }
     }
 }
