@@ -1,3 +1,4 @@
+use minirng::hash::next_f32;
 use minvect::*;
 use crate::game::*;
 use std::time::Instant;
@@ -36,6 +37,12 @@ impl Game {
         self.player_pos += self.player_vel * dt;
         
         // wall spawning
+        if self.player_pos.x - self.x_last_wall > WALL_SEPARATION {
+            self.x_last_wall = self.player_pos.x;
+
+            // i think walls is just rects
+            push_wall_rects(&mut self.walls, &mut self.wall_seed, self.player_pos.x);
+        }
 
         // cloud spawning and moving
 
@@ -78,4 +85,14 @@ impl Game {
             }
         }
     }
+}
+
+pub fn push_wall_rects(buf: &mut Vec<Rect>, rng: &mut u32, x: f32) {
+    let h = next_f32(rng);
+    let h = h * GAP_H;
+    let wall_x = x + 1.0;
+    let r1 = rect(wall_x, -1.0 - 10.0, WALL_W, h + 10.0);
+    let r2 = rect(wall_x, -1.0 + GAP_H + h, WALL_W, 10.0);
+    buf.push(r1);
+    buf.push(r2);
 }

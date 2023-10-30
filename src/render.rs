@@ -16,6 +16,8 @@ impl Game {
             for wall in self.walls.iter() {
                 glow_mesh::xyzrgba::put_rect(&mut buf, *wall, wall_colour, 0.1);
             }
+            
+
 
             buf
     }

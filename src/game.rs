@@ -18,6 +18,7 @@ pub const PICKUP_VALUE: f32 = 1000.0;
 pub const PICKUP_RADIUS: f32 = 0.015;
 pub const GAP_H: f32 = 0.4;
 pub const WALL_W: f32 = 0.2;
+pub const WALL_SEPARATION: f32 = 2.0;
 
 pub struct Game {
     pub gl: glow::Context,
@@ -156,7 +157,7 @@ impl Game {
 
     pub fn render(&self) {
         unsafe {
-            self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
+            self.gl.clear_color(0.65, 0.65, 1.0, 1.0);
             self.gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT); 
             let buf = self.get_geometry();
             let h = upload_xyzrgba_mesh(&buf, &self.gl);
