@@ -1,6 +1,7 @@
 mod game;
 mod render;
 mod game_logic;
+mod text_uv;
 
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::ControlFlow;

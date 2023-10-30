@@ -16,6 +16,24 @@ fn sd_rect(p: Vec2, r: Rect) -> f32 {
 }
 
 impl Game {
+    pub fn reset(&mut self) {
+        self.t_last_frame = Instant::now();
+        self.player_pos = vec2(0.0, -0.9);
+        self.player_vel = vec2(PLAYER_SPEED, 0.0);
+        self.t_press = 0.0;
+        self.grav_dir = 1.0;
+        self.x_last_wall = 0.0;
+        self.t = 0.0;
+        self.score = 0.0;
+        self.wall_seed = minirng::hash::random_seed();
+        self.t_last_wall = 0.0;
+        self.walls = vec![];
+        self.pickups = vec![];
+        self.paused = false;
+        self.dead = false;
+        self.press = false;
+    }
+
     pub fn frame(&mut self) {
         let tnow = Instant::now();
         let dt = tnow.duration_since(self.t_last_frame).as_secs_f32();
@@ -40,8 +58,20 @@ impl Game {
         if self.player_pos.x - self.x_last_wall > WALL_SEPARATION {
             self.x_last_wall = self.player_pos.x;
 
+            let level_period = 6.0;
+            let initial_phase = -2.0;
+            let x = self.player_pos.x + level_period + initial_phase;
+
+            if next_f32(&mut self.wall_seed) < PICKUP_CHANCE  {
+                let pickup_x = x + level_period * 0.5;
+                let pickup_y = next_f32(&mut self.wall_seed)*2.0 - 1.0;
+                let pickup_y = pickup_y * 0.8;
+                self.pickups.push(vec2(pickup_x, pickup_y));
+            } 
+
+            push_wall_rects(&mut self.walls, &mut self.wall_seed, x);
+
             // i think walls is just rects
-            push_wall_rects(&mut self.walls, &mut self.wall_seed, self.player_pos.x);
         }
 
         // cloud spawning and moving
@@ -89,8 +119,8 @@ impl Game {
 
 pub fn push_wall_rects(buf: &mut Vec<Rect>, rng: &mut u32, x: f32) {
     let h = next_f32(rng);
-    let h = h * GAP_H;
-    let wall_x = x + 1.0;
+    let h = h * 1.5;
+    let wall_x = x;
     let r1 = rect(wall_x, -1.0 - 10.0, WALL_W, h + 10.0);
     let r2 = rect(wall_x, -1.0 + GAP_H + h, WALL_W, 10.0);
     buf.push(r1);

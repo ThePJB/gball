@@ -4,27 +4,31 @@ use glow::HasContext;
 use glow_mesh::xyzrgba::*;
 use glow_mesh::xyzrgbauv::*;
 use minvect::*;
-use minirng::hash::random_seed;
 use glutin::event::{Event, WindowEvent};
 
 use glutin::event::VirtualKeyCode;
 use winit::event::ElementState;
 
-pub const PLAYER_R_BASE: f32 = 0.03;
+use crate::text_uv::GlyphClips;
+
+pub const PLAYER_R_BASE: f32 = 0.04;
 pub const PLAYER_R_SYMPATHY: f32 = 0.01;
-pub const GRAVITY: f32 = 1.8;
+pub const GRAVITY: f32 = 3.9;
+pub const PLAYER_SPEED: f32 = 1.5;
 pub const CAM_X_OFFSET: f32 = 0.5;
 pub const PICKUP_VALUE: f32 = 1000.0;
-pub const PICKUP_RADIUS: f32 = 0.015;
-pub const GAP_H: f32 = 0.4;
-pub const WALL_W: f32 = 0.2;
+pub const PICKUP_RADIUS: f32 = 0.05;
+pub const GAP_H: f32 = 0.8;
+pub const WALL_W: f32 = 0.4;
 pub const WALL_SEPARATION: f32 = 2.0;
+pub const PICKUP_CHANCE: f32 = 0.33;
 
 pub struct Game {
     pub gl: glow::Context,
     pub window: glutin::WindowedContext<glutin::PossiblyCurrent>,
     pub prog_shape: ProgramXYZRGBA,
     pub prog_text: ProgramXYZRGBAUV,
+    pub glyph_clips: GlyphClips,
     pub xres: f32,
     pub yres: f32,
 
@@ -66,6 +70,7 @@ impl Game {
         unsafe {
             let window_builder = glutin::window::WindowBuilder::new()
                 .with_title("gball")
+                .with_maximized(true)
                 .with_inner_size(glutin::dpi::PhysicalSize::new(xres, yres));
             let window = glutin::ContextBuilder::new()
                 .with_vsync(true)
@@ -85,13 +90,33 @@ impl Game {
             let prog_text = ProgramXYZRGBAUV::default(&gl, &img);
 
             let now = Instant::now();
-            Game {
+
+            let mut glyph_clips = GlyphClips::default();
+            let imdim = vec2(320.0, 160.0);
+            let mut uvstart = vec2(0.0, 96.0);
+            let mut uvend = vec2(224.0, 104.0);
+            let r = rectv(uvstart/imdim, (uvend-uvstart)/imdim);
+            glyph_clips.define_string_rect(r##" !"#$%&'()*+,-./0123456789:;<=>?"##, r);
+            let j = vec2(0.0, 8.0);
+            uvstart += j;
+            uvend += j;
+            let r = rectv(uvstart/imdim, (uvend-uvstart)/imdim);
+            glyph_clips.define_string_rect(r##"@abcdefghijklmnopqrstuvwxyz[\]^_"##, r);
+            uvstart += j;
+            uvend += j;
+            let r = rectv(uvstart/imdim, (uvend-uvstart)/imdim);
+            glyph_clips.define_string_rect(r##"`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~ "##, r);
+
+
+            // for resettable fields just do reset
+            let mut game = Game {
                 gl,
                 window,
                 xres,
                 yres,
                 prog_shape,
                 prog_text,
+                glyph_clips,
                 t_last_frame: now,
                 player_pos: vec2(0.0, -0.9),
                 player_vel: vec2(0.45, 0.0),
@@ -100,7 +125,7 @@ impl Game {
                 grav_dir: 1.0,
                 t: 0.0,
                 score: 0.0,
-                wall_seed: random_seed(),
+                wall_seed: 0,
                 t_last_wall: 0.0,
                 walls: vec![],
                 pickups: vec![],
@@ -111,7 +136,9 @@ impl Game {
                 paused: false,
                 dead: false,
                 press: false,
-            }
+            };
+            game.reset();
+            game
         }
     }
     
@@ -164,31 +191,14 @@ impl Game {
             self.prog_shape.bind(&self.gl);
             self.prog_shape.set_proj(&self.get_camera(), &self.gl);
             h.render(&self.gl);
-            // let buf = self.get_text();
-            // let h = upload_xyzrgbauv_mesh(&buf, &self.gl);
-            // self.prog_text.bind(&self.gl);
-            // h.render(&self.gl);
+            let buf = self.get_text();
+            let h = upload_xyzrgbauv_mesh(&buf, &self.gl);
+            self.prog_text.bind(&self.gl);
+            h.render(&self.gl);
             self.window.swap_buffers().unwrap();
         }
     }
 
-    pub fn reset(&mut self) {
-        self.t_last_frame = Instant::now();
-        self.player_pos = vec2(0.0, -0.9);
-        self.player_vel = vec2(0.45, 0.0);
-        self.t_press = 0.0;
-        self.grav_dir = 1.0;
-        self.x_last_wall = 0.0;
-        self.t = 0.0;
-        self.score = 0.0;
-        self.wall_seed = random_seed();
-        self.t_last_wall = 0.0;
-        self.walls = vec![];
-        self.pickups = vec![];
-        self.paused = false;
-        self.dead = false;
-        self.press = false;
-    }
 }
 
 // fade score in death screen

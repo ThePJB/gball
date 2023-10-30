@@ -32,3 +32,10 @@ lol wat if u just made it fkn red hot with some psytrance and some julia sets da
 
 
 etc
+
+oi pickups and rare pickups that are harder to hit yea
+
+
+
+ok goin pretty well, lets call it a night here. text not drawing for some reason, like the code though.
+
