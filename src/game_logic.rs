@@ -77,6 +77,9 @@ impl Game {
         // cloud spawning and moving
 
         // dying of offscreen
+        if self.player_pos.y < -1.0 || self.player_pos.y > 1.0 {
+            self.dead = true;
+        }
 
         // die to walls
         for wall in self.walls.iter() {

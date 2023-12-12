@@ -13,8 +13,8 @@ use crate::text_uv::GlyphClips;
 
 pub const PLAYER_R_BASE: f32 = 0.04;
 pub const PLAYER_R_SYMPATHY: f32 = 0.01;
-pub const GRAVITY: f32 = 3.9;
-pub const PLAYER_SPEED: f32 = 1.5;
+pub const GRAVITY: f32 = 2.9;
+pub const PLAYER_SPEED: f32 = 0.8;
 pub const CAM_X_OFFSET: f32 = 0.5;
 pub const PICKUP_VALUE: f32 = 1000.0;
 pub const PICKUP_RADIUS: f32 = 0.05;
